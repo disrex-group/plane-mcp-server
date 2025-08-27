@@ -980,7 +980,12 @@ const CREATE_ISSUE_COMMENT_TOOL: Tool = {
       },
       comment: {
         type: "string",
-        description: "The comment text",
+        description: "The comment text (will be converted to HTML)",
+      },
+      access: {
+        type: "string",
+        description: "Comment visibility: INTERNAL (default) or EXTERNAL",
+        enum: ["INTERNAL", "EXTERNAL"],
       },
     },
     required: ["project_id", "issue_id", "comment"],
@@ -1007,7 +1012,12 @@ const UPDATE_ISSUE_COMMENT_TOOL: Tool = {
       },
       comment: {
         type: "string",
-        description: "The updated comment text",
+        description: "The updated comment text (will be converted to HTML)",
+      },
+      access: {
+        type: "string",
+        description: "Comment visibility: INTERNAL (default) or EXTERNAL",
+        enum: ["INTERNAL", "EXTERNAL"],
       },
     },
     required: ["project_id", "issue_id", "comment_id", "comment"],
@@ -2723,7 +2733,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("Project ID, Issue ID, and comment text are required");
         }
         const { project_id, issue_id, comment } = args;
-        const newComment = await callPlaneAPI(`/projects/${project_id}/issues/${issue_id}/comments/`, "POST", { comment });
+        // Convert plain text to HTML format as required by Plane API
+        const comment_html = `<p>${comment.replace(/\n/g, '</p><p>')}</p>`;
+        const newComment = await callPlaneAPI(`/projects/${project_id}/issues/${issue_id}/comments/`, "POST", { 
+          comment_html,
+          access: args.access || "INTERNAL" 
+        });
         return {
           content: [{ type: "text", text: JSON.stringify(newComment, null, 2) }],
           isError: false,
@@ -2735,7 +2750,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("Project ID, Issue ID, Comment ID, and comment text are required");
         }
         const { project_id, issue_id, comment_id, comment } = args;
-        const updatedComment = await callPlaneAPI(`/projects/${project_id}/issues/${issue_id}/comments/${comment_id}/`, "PATCH", { comment });
+        // Convert plain text to HTML format as required by Plane API
+        const comment_html = `<p>${comment.replace(/\n/g, '</p><p>')}</p>`;
+        const updatedComment = await callPlaneAPI(`/projects/${project_id}/issues/${issue_id}/comments/${comment_id}/`, "PATCH", { 
+          comment_html,
+          access: args.access || "INTERNAL"
+        });
         return {
           content: [{ type: "text", text: JSON.stringify(updatedComment, null, 2) }],
           isError: false,
